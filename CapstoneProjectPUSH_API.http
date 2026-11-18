@@ -1,0 +1,12 @@
+@baseUrl = https://localhost:7023
+
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Strength Training"
+}
+
+###
+
+GET {{baseUrl}}/api/categories

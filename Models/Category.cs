@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace CapstoneProjectPUSH_API.Models
 {
@@ -8,6 +8,6 @@ namespace CapstoneProjectPUSH_API.Models
 
         [Required]
         [MaxLength(50)]
-        public string Name { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
     }
 }

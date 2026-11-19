@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using CapstoneProjectPUSH_API.Data;
 using System.Security.Claims;
 using CapstoneProjectPUSH_API.Models;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services.AddDbContext<PushDbContext>(options =>
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<EmailSender>();
+builder.Services.AddScoped<ImageStorage>();
 
 string jwtKey = TokenService.GetKey(builder.Configuration);
 
@@ -84,6 +86,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Serve uploaded photos from the "uploads" folder at /uploads/...
+string uploadsFolder = ImageStorage.GetUploadsFolder(app.Environment);
+Directory.CreateDirectory(uploadsFolder);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsFolder),
+    RequestPath = ImageStorage.RequestPath
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

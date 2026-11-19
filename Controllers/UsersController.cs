@@ -14,10 +14,12 @@ namespace CapstoneProjectPUSH_API.Controllers
     public class UsersController : PushControllerBase
     {
         private readonly PushDbContext _db;
+        private readonly ImageStorage _imageStorage;
 
-        public UsersController(PushDbContext db)
+        public UsersController(PushDbContext db, ImageStorage imageStorage)
         {
             _db = db;
+            _imageStorage = imageStorage;
         }
 
         // ---------- The signed-in user ----------
@@ -177,6 +179,8 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             // One save, so it's all or nothing. Reports they made are kept and show "Deleted user".
             await _db.SaveChangesAsync();
+
+            _imageStorage.Delete(user.ProfileImageUrl);
 
             return Ok(new MessageResponse(true, "Your account has been deleted."));
         }

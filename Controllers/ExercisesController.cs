@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using CapstoneProjectPUSH_API.Data;
 using CapstoneProjectPUSH_API.Dtos;
 using CapstoneProjectPUSH_API.Models;
+using CapstoneProjectPUSH_API.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
@@ -12,10 +13,12 @@ namespace CapstoneProjectPUSH_API.Controllers
     public class ExercisesController : PushControllerBase
     {
         private readonly PushDbContext _db;
+        private readonly ImageStorage _imageStorage;
 
-        public ExercisesController(PushDbContext db)
+        public ExercisesController(PushDbContext db, ImageStorage imageStorage)
         {
             _db = db;
+            _imageStorage = imageStorage;
         }
 
         // GET api/exercises
@@ -132,6 +135,8 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             // All changes are saved together, so it's all or nothing
             await _db.SaveChangesAsync();
+
+            _imageStorage.Delete(exercise.ImageUrl);
 
             return Ok(new MessageResponse(true, "Exercise deleted."));
         }

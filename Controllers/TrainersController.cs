@@ -1,10 +1,11 @@
-using System.Net.Mail;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using CapstoneProjectPUSH_API.Data;
 using CapstoneProjectPUSH_API.Dtos;
 using CapstoneProjectPUSH_API.Models;
+using CapstoneProjectPUSH_API.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
@@ -15,10 +16,12 @@ namespace CapstoneProjectPUSH_API.Controllers
     public class TrainersController : PushControllerBase
     {
         private readonly PushDbContext _db;
+        private readonly ImageStorage _imageStorage;
 
-        public TrainersController(PushDbContext db)
+        public TrainersController(PushDbContext db, ImageStorage imageStorage)
         {
             _db = db;
+            _imageStorage = imageStorage;
         }
 
         // GET api/trainers
@@ -178,6 +181,8 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             _db.Trainers.Remove(trainer);
             await _db.SaveChangesAsync();
+
+            _imageStorage.Delete(trainer.ProfileImageUrl);
 
             return Ok(new MessageResponse(true, GetFullName(trainer) + " was deleted."));
         }

@@ -33,19 +33,21 @@ namespace CapstoneProjectPUSH_API.Controllers
                 .ThenBy(t => t.FirstName)
                 .ToListAsync();
 
+            // Fill trainer info with lookups
             await FillGymAndCategoryAsync(trainers);
 
             return Ok(trainers);
         }
 
         // GET api/trainers/favourite-first
-        // Trainers at the signed-in user's favourite gym come first
         [HttpGet("favourite-first")]
         public async Task<IActionResult> GetTrainersFavouriteGymFirst()
         {
+            // Gets current user
             int userId = GetCurrentUserId();
             User? currentUser = await _db.Users.FindAsync(userId);
 
+            // Gets user's favourite gym
             int? favouriteGymId = null;
 
             if (currentUser != null)
@@ -60,6 +62,7 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             await FillGymAndCategoryAsync(trainers);
 
+            // Toggles trainer is at favourite gym bool
             foreach (Trainer trainer in trainers)
             {
                 if (favouriteGymId != null && trainer.GymId == favouriteGymId.Value)
@@ -72,6 +75,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 }
             }
 
+            // Reorders list
             List<Trainer> sorted = trainers.OrderByDescending(t => t.IsAtFavouriteGym).ToList();
 
             return Ok(sorted);
@@ -93,7 +97,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // GET api/trainers/5
+        // GET api/trainers/id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTrainer(int id)
         {
@@ -114,6 +118,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddTrainer(TrainerRequest request)
         {
+            // Validate a copy first
             Trainer trainer = new Trainer();
             CopyRequestToTrainer(request, trainer);
 
@@ -124,17 +129,19 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, error));
             }
 
+            // Creates trainer
             _db.Trainers.Add(trainer);
             await _db.SaveChangesAsync();
 
             return Ok(new MessageResponse(true, GetFullName(trainer) + " was added."));
         }
 
-        // PUT api/trainers/5
+        // PUT api/trainers/id
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateTrainer(int id, TrainerRequest request)
         {
+            // Gets trainer by id
             Trainer? existing = await _db.Trainers.FindAsync(id);
 
             if (existing == null)
@@ -142,7 +149,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Trainer could not be found."));
             }
 
-            // Validate a copy first, so a failed edit doesn't change the tracked trainer
+            // Validate a copy first
             Trainer updated = new Trainer();
             CopyRequestToTrainer(request, updated);
 
@@ -153,6 +160,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, error));
             }
 
+            // Update trainer details
             existing.FirstName = updated.FirstName;
             existing.LastName = updated.LastName;
             existing.Email = updated.Email;
@@ -167,7 +175,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, GetFullName(existing) + " was updated."));
         }
 
-        // DELETE api/trainers/5
+        // DELETE api/trainers/id
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteTrainer(int id)
@@ -179,16 +187,17 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Trainer could not be found."));
             }
 
+            // Deletes trainer
             _db.Trainers.Remove(trainer);
             await _db.SaveChangesAsync();
 
+            // Deletes trainer image
             _imageStorage.Delete(trainer.ProfileImageUrl);
 
             return Ok(new MessageResponse(true, GetFullName(trainer) + " was deleted."));
         }
 
         // Helpers
-
         // Fill in each trainer's gym and category details
         private async Task FillGymAndCategoryAsync(List<Trainer> trainers)
         {
@@ -225,7 +234,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
-        // Copies and trims the request values onto a trainer
+        // Copies and trims the input values onto a trainer
         private static void CopyRequestToTrainer(TrainerRequest request, Trainer trainer)
         {
             trainer.FirstName = Clean(request.FirstName);
@@ -305,6 +314,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return trainer.FirstName + " " + trainer.LastName;
         }
 
+        // Cleans input
         private static string Clean(string? value)
         {
             if (value == null)
@@ -315,6 +325,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return value.Trim();
         }
 
+        // Validates email
         private static bool IsValidEmail(string email)
         {
             if (email.Length > 250)

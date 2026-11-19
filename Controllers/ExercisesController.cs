@@ -42,7 +42,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // GET api/exercises/5
+        // GET api/exercises/id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetExercise(int id)
         {
@@ -63,9 +63,11 @@ namespace CapstoneProjectPUSH_API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddExercise(ExerciseRequest request)
         {
+            // Validate a copy first
             Exercise exercise = new Exercise();
             CopyRequestToExercise(request, exercise);
 
+            // Validation
             string? error = await ValidateAsync(exercise, 0);
 
             if (error != null)
@@ -73,17 +75,19 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, error));
             }
 
+            // Add exercise
             _db.Exercises.Add(exercise);
             await _db.SaveChangesAsync();
 
             return Ok(new MessageResponse(true, exercise.Title + " was added."));
         }
 
-        // PUT api/exercises/5
+        // PUT api/exercises/id
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateExercise(int id, ExerciseRequest request)
         {
+            // Database check
             Exercise? existing = await _db.Exercises.FindAsync(id);
 
             if (existing == null)
@@ -95,6 +99,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             Exercise updated = new Exercise();
             CopyRequestToExercise(request, updated);
 
+            // Validation
             string? error = await ValidateAsync(updated, id);
 
             if (error != null)
@@ -102,6 +107,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, error));
             }
 
+            // Update exercise
             existing.Title = updated.Title;
             existing.Description = updated.Description;
             existing.IsTimed = updated.IsTimed;
@@ -119,6 +125,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteExercise(int id)
         {
+            // Database check
             Exercise? exercise = await _db.Exercises.FindAsync(id);
 
             if (exercise == null)
@@ -126,23 +133,25 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Exercise could not be found."));
             }
 
+            // Gets WE links
             List<WorkoutExercise> links = await _db.WorkoutExercises
                 .Where(we => we.ExerciseId == id)
                 .ToListAsync();
 
+            // Deletes exercise and connections
             _db.WorkoutExercises.RemoveRange(links);
             _db.Exercises.Remove(exercise);
 
             // All changes are saved together, so it's all or nothing
             await _db.SaveChangesAsync();
 
+            // Delete image
             _imageStorage.Delete(exercise.ImageUrl);
 
             return Ok(new MessageResponse(true, "Exercise deleted."));
         }
 
         // Helpers
-
         private async Task FillCategoryTitlesAsync(List<Exercise> exercises)
         {
             Dictionary<int, string> categoryTitles = await _db.Categories.ToDictionaryAsync(c => c.Id, c => c.Title);
@@ -162,6 +171,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
+        // Creates a placeholder of the request exercise
         private static void CopyRequestToExercise(ExerciseRequest request, Exercise exercise)
         {
             exercise.Title = Clean(request.Title);

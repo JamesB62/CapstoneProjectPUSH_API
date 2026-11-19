@@ -21,7 +21,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // GET api/weightlogs/mine
-        // The signed-in user's weight logs, newest first (guests included, for the seeded stats)
         [HttpGet("mine")]
         public async Task<IActionResult> GetMyWeightLogs()
         {
@@ -36,24 +35,27 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // POST api/weightlogs/today
-        // Saves today's weight, replacing today's entry if there already is one ("today" is NZ time)
+        // Saves today's weight -- date is recorded in NZ time
         [HttpPost("today")]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> SaveWeightForToday(WeightLogRequest request)
         {
             int userId = GetCurrentUserId();
 
+            // Validation
             if (request.WeightKg <= 0 || request.WeightKg > 500)
             {
                 return BadRequest(new MessageResponse(false, "Please enter a valid weight."));
             }
 
+            // Check weigh-in date time
             DateTime todayStart = NzTime.TodayStartUtc();
             DateTime tomorrowStart = todayStart.AddDays(1);
 
             WeightLog? existingLog = await _db.WeightLogs
                 .FirstOrDefaultAsync(l => l.UserId == userId && l.DateTimeLogged >= todayStart && l.DateTimeLogged < tomorrowStart);
 
+            // Updates log if one already exists
             if (existingLog != null)
             {
                 existingLog.WeightKg = request.WeightKg;
@@ -61,6 +63,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
             else
             {
+                // Creates new log if one doesn't already exist
                 _db.WeightLogs.Add(new WeightLog
                 {
                     UserId = userId,

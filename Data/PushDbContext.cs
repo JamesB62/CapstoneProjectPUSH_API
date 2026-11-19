@@ -26,13 +26,13 @@ namespace CapstoneProjectPUSH_API.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Unique values
+            // Unique values constraints
             modelBuilder.Entity<Category>().HasIndex(c => c.Title).IsUnique();
             modelBuilder.Entity<User>().HasIndex(u => u.DisplayName).IsUnique();
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
             modelBuilder.Entity<WorkoutFavourite>().HasIndex(f => new { f.UserId, f.WorkoutId }).IsUnique();
 
-            // Indexes for the ID columns the app searches by
+            // Indexes for the Id columns the app searches by
             modelBuilder.Entity<Exercise>().HasIndex(e => e.CategoryId);
             modelBuilder.Entity<Note>().HasIndex(n => n.UserId);
             modelBuilder.Entity<Note>().HasIndex(n => n.WorkoutId);

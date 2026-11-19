@@ -38,7 +38,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // GET api/gyms/5
+        // GET api/gyms/id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetGym(int id)
         {
@@ -63,6 +63,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             string address = Clean(request.Address);
             string city = Clean(request.City);
 
+            // Validation
             string? error = ValidateGym(name, address, city);
 
             if (error != null)
@@ -72,18 +73,20 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             List<Gym> gyms = await _db.Gyms.ToListAsync();
 
+            // Database check, case sensitive check
             if (gyms.Any(g => IsSameGym(g, name, address, city)))
             {
                 return BadRequest(new MessageResponse(false, "That gym already exists."));
             }
 
+            // Add new gym
             _db.Gyms.Add(new Gym { Name = name, Address = address, City = city });
             await _db.SaveChangesAsync();
 
             return Ok(new MessageResponse(true, "Gym added."));
         }
 
-        // PUT api/gyms/5
+        // PUT api/gyms/id
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateGym(int id, GymRequest request)
@@ -92,6 +95,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             string address = Clean(request.Address);
             string city = Clean(request.City);
 
+            // Validation
             string? error = ValidateGym(name, address, city);
 
             if (error != null)
@@ -99,6 +103,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, error));
             }
 
+            // Database checks
             Gym? gym = await _db.Gyms.FindAsync(id);
 
             if (gym == null)
@@ -113,6 +118,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, "That gym already exists."));
             }
 
+            // Update gym details
             gym.Name = name;
             gym.Address = address;
             gym.City = city;
@@ -122,11 +128,12 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "Gym updated."));
         }
 
-        // DELETE api/gyms/5
+        // DELETE api/gyms/id
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteGym(int id)
         {
+            // Database check
             Gym? gym = await _db.Gyms.FindAsync(id);
 
             if (gym == null)
@@ -134,7 +141,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Gym could not be found."));
             }
 
-            // Clear the gym from its trainers (they fall back to "Unknown Gym")
+            // Clear the gym from its trainers -- they fall back to "Unknown Gym"
             List<Trainer> trainers = await _db.Trainers.Where(t => t.GymId == id).ToListAsync();
 
             foreach (Trainer trainer in trainers)
@@ -142,7 +149,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 trainer.GymId = 0;
             }
 
-            // Clear it as anyone's favourite gym
+            // Clear it from favourite gyms
             List<User> users = await _db.Users.Where(u => u.GymId == id).ToListAsync();
 
             foreach (User user in users)
@@ -150,6 +157,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 user.GymId = null;
             }
 
+            // Delete gym
             _db.Gyms.Remove(gym);
 
             // All changes are saved together, so it's all or nothing
@@ -159,6 +167,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Helpers
+        // Cleans input data
         private static string Clean(string? value)
         {
             if (value == null)
@@ -169,6 +178,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return value.Trim();
         }
 
+        // Input validation
         private static string? ValidateGym(string name, string address, string city)
         {
             if (name.Length == 0 || name.Length > 250)

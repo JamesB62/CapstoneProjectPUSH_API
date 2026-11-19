@@ -8,7 +8,7 @@ using CapstoneProjectPUSH_API.Services;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
-    // Roles are set per method (class-level and method-level [Authorize] would both have to pass)
+    // Roles are set per method
     [ApiController]
     [Route("api/[controller]")]
     public class UsersController : PushControllerBase
@@ -22,14 +22,12 @@ namespace CapstoneProjectPUSH_API.Controllers
             _imageStorage = imageStorage;
         }
 
-        // ---------- The signed-in user ----------
-
         // GET api/users/me
-        // Fresh copy of the signed-in user's account
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> GetMe()
         {
+            // Get user info
             User? user = await _db.Users.FindAsync(GetCurrentUserId());
 
             if (user == null)
@@ -41,7 +39,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // PUT api/users/me
-        // Update Details form (guests can't update details)
+        // Update Details form -- guests can't update details
         [HttpPut("me")]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> UpdateDetails(UpdateDetailsRequest request)
@@ -144,7 +142,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // DELETE api/users/me
-        // Permanent delete. Members only: admins and the guest account can't be deleted.
+        // Permanent delete -- members only, excluding admins and guests
         [HttpDelete("me")]
         [Authorize(Roles = "Member")]
         public async Task<IActionResult> DeleteAccount()
@@ -157,18 +155,19 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Account could not be found."));
             }
 
-            // The user's workouts, and everything attached to them (same cleanup as deleting a workout)
+            // Gets all user workouts
             List<int> workoutIds = await _db.Workouts
                 .Where(w => w.UserId == userId)
                 .Select(w => w.Id)
                 .ToListAsync();
 
+            // Deletes all user workout content
             _db.WorkoutExercises.RemoveRange(await _db.WorkoutExercises.Where(we => workoutIds.Contains(we.WorkoutId)).ToListAsync());
             _db.WorkoutFavourites.RemoveRange(await _db.WorkoutFavourites.Where(f => workoutIds.Contains(f.WorkoutId)).ToListAsync());
             _db.Notes.RemoveRange(await _db.Notes.Where(n => workoutIds.Contains(n.WorkoutId)).ToListAsync());
             _db.Workouts.RemoveRange(await _db.Workouts.Where(w => w.UserId == userId).ToListAsync());
 
-            // The user's own data
+            // Deletes user data
             _db.Notes.RemoveRange(await _db.Notes.Where(n => n.UserId == userId).ToListAsync());
             _db.WorkoutFavourites.RemoveRange(await _db.WorkoutFavourites.Where(f => f.UserId == userId).ToListAsync());
             _db.WorkoutLogs.RemoveRange(await _db.WorkoutLogs.Where(l => l.UserId == userId).ToListAsync());
@@ -177,7 +176,7 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             _db.Users.Remove(user);
 
-            // One save, so it's all or nothing. Reports they made are kept and show "Deleted user".
+            // One save, so it's all or nothing
             await _db.SaveChangesAsync();
 
             _imageStorage.Delete(user.ProfileImageUrl);
@@ -185,10 +184,9 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "Your account has been deleted."));
         }
 
-        // ---------- Admin ----------
+        // Admin
 
         // GET api/users
-        // Every account, oldest first
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUsers()
@@ -218,17 +216,19 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // PUT api/users/5/status
+        // PUT api/users/id/status
         // Activate or deactivate an account
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SetUserActiveStatus(int id, UserStatusRequest request)
         {
+            // Gets current user id, can't match requested user id
             if (id == GetCurrentUserId())
             {
                 return Fail("You can't deactivate your own account.");
             }
 
+            // Database checks
             User? user = await _db.Users.FindAsync(id);
 
             if (user == null)
@@ -236,6 +236,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new UserResponse { Success = false, Message = "Account could not be found." });
             }
 
+            // Update status
             user.IsActive = request.IsActive;
             await _db.SaveChangesAsync();
 
@@ -249,7 +250,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
-        // ---------- Helpers ----------
+        // Helpers
 
         private IActionResult Fail(string message)
         {

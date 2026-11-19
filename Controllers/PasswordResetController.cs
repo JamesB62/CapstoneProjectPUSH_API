@@ -9,7 +9,7 @@ using CapstoneProjectPUSH_API.Services;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
-    // No login needed: people use this when they can't log in
+    // No login needed
     [ApiController]
     [Route("api/[controller]")]
     public class PasswordResetController : PushControllerBase
@@ -19,7 +19,7 @@ namespace CapstoneProjectPUSH_API.Controllers
 
         private const string InvalidMessage = "Invalid or expired code.";
 
-        // Same reply whether or not the email exists, so this can't be used to find out who has an account
+        // Same reply whether or not the email exists to prevent exposing an email in use
         private const string RequestSentMessage = "If an account exists for that email, a reset code has been sent.";
 
         private readonly PushDbContext _db;
@@ -35,8 +35,10 @@ namespace CapstoneProjectPUSH_API.Controllers
         [HttpPost("request")]
         public async Task<IActionResult> RequestReset(ResetCodeRequest request)
         {
+            // Clean input
             string email = AccountRules.NormaliseEmail(request.Email);
 
+            // Find user by email
             User? user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
 
             // Guests have no password, and deactivated accounts can't reset
@@ -45,12 +47,14 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Ok(new MessageResponse(true, RequestSentMessage));
             }
 
+            // Generates password reset code
             string code = RandomNumberGenerator.GetInt32(0, 1000000).ToString("D6");
 
-            // Replace any old code
+            // Replace any existing password reset info
             List<PasswordReset> oldResets = await _db.PasswordResets.Where(r => r.UserId == user.Id).ToListAsync();
             _db.PasswordResets.RemoveRange(oldResets);
 
+            // Records password reset info
             _db.PasswordResets.Add(new PasswordReset
             {
                 UserId = user.Id,
@@ -61,6 +65,7 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             await _db.SaveChangesAsync();
 
+            // Email body preset
             await _emailSender.TrySendAsync(
                 user.Email,
                 "PUSH Password reset",
@@ -73,6 +78,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         [HttpPost("reset")]
         public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
         {
+            // Clean inputs
             string email = AccountRules.NormaliseEmail(request.Email);
             string code = "";
 
@@ -81,6 +87,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 code = request.Code.Trim();
             }
 
+            // Get user by email
             User? user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null)
@@ -88,6 +95,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(InvalidMessage);
             }
 
+            // Get password reset information
             PasswordReset? reset = await _db.PasswordResets.FirstOrDefaultAsync(r => r.UserId == user.Id);
 
             if (reset == null)
@@ -95,6 +103,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(InvalidMessage);
             }
 
+            // Checks if password attempt is valid
             if (reset.ExpiresAt < DateTime.UtcNow || reset.FailedAttempts >= MaxAttempts)
             {
                 _db.PasswordResets.Remove(reset);
@@ -102,10 +111,12 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(InvalidMessage);
             }
 
+            // Checks if code matches
             bool matches = CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(HashCode(code)),
                 Encoding.UTF8.GetBytes(reset.CodeHash));
 
+            // If not, increment failed attempts by 1
             if (!matches)
             {
                 reset.FailedAttempts = reset.FailedAttempts + 1;
@@ -113,7 +124,8 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(InvalidMessage);
             }
 
-            // Code is right: check the new password (same rules as register)
+            // If code is correct
+            // Validation
             if (!AccountRules.IsStrongPassword(request.NewPassword))
             {
                 return Fail(AccountRules.PasswordRequirementsText);
@@ -124,11 +136,14 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail("Passwords do not match.");
             }
 
+            // Hashes new password
             user.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
             _db.PasswordResets.Remove(reset);
 
+            // Saves new password
             await _db.SaveChangesAsync();
 
+            // Email notification
             await _emailSender.TrySendAsync(
                 user.Email,
                 "Your PUSH password was changed",
@@ -138,7 +153,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Helpers
-
         private static string HashCode(string code)
         {
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(code)));

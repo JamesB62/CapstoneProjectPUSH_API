@@ -8,8 +8,7 @@ using CapstoneProjectPUSH_API.Models;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
-    // Every workout endpoint needs a login token (admin, member or guest).
-    // The user always comes from the token, so nobody can ask for someone else's workouts.
+    // Every workout endpoint needs a login token
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -22,10 +21,9 @@ namespace CapstoneProjectPUSH_API.Controllers
             _db = db;
         }
 
-        // ---------- Own workouts (guests included) ----------
+        // Own workouts -- guests included
 
         // GET api/workouts/mine
-        // The signed-in user's workouts, favourites first, then newest first
         [HttpGet("mine")]
         public async Task<IActionResult> GetMyWorkouts()
         {
@@ -36,8 +34,10 @@ namespace CapstoneProjectPUSH_API.Controllers
                 .OrderByDescending(w => w.DateTimeCreated)
                 .ToListAsync();
 
+            // Fills workout details with lookups
             await FillWorkoutSummariesAsync(workouts, userId, false);
 
+            // Sorts by favourite first
             List<Workout> sorted = workouts
                 .OrderByDescending(w => w.IsFavourite)
                 .ThenByDescending(w => w.DateTimeCreated)
@@ -46,7 +46,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(sorted);
         }
 
-        // GET api/workouts/mine/5
+        // GET api/workouts/mine/id
         [HttpGet("mine/{id}")]
         public async Task<IActionResult> GetMyWorkout(int id)
         {
@@ -64,23 +64,25 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(workout);
         }
 
-        // ---------- Community workouts (members and admins only) ----------
+        // Community workouts -- members and admins only
 
         // GET api/workouts/community
-        // Every shared workout, favourites first
         [HttpGet("community")]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> GetCommunityWorkouts()
         {
             int userId = GetCurrentUserId();
 
+            // Shows only public workouts
             List<Workout> workouts = await _db.Workouts
                 .Where(w => w.IsPrivate == false)
                 .OrderByDescending(w => w.DateTimeCreated)
                 .ToListAsync();
-
+            
+            // Fills details
             await FillWorkoutSummariesAsync(workouts, userId, true);
 
+            // Sorts by favourites first
             List<Workout> sorted = workouts
                 .OrderByDescending(w => w.IsFavourite)
                 .ToList();
@@ -88,7 +90,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(sorted);
         }
 
-        // GET api/workouts/community/5
+        // GET api/workouts/community/id
         [HttpGet("community/{id}")]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> GetCommunityWorkout(int id)
@@ -116,13 +118,13 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(workout);
         }
 
-        // ---------- Exercises in a workout ----------
+        // Workout exercises
 
-        // GET api/workouts/5/exercises
-        // Allowed for the owner, admins, and members when the workout is shared
+        // GET api/workouts/id/exercises
         [HttpGet("{id}/exercises")]
         public async Task<IActionResult> GetWorkoutExercises(int id)
         {
+            // Database check
             Workout? workout = await _db.Workouts.FindAsync(id);
 
             if (workout == null || !CanViewWorkout(workout))
@@ -130,11 +132,13 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Workout could not be found."));
             }
 
+            // Sorting
             List<WorkoutExercise> items = await _db.WorkoutExercises
                 .Where(we => we.WorkoutId == id)
                 .OrderBy(we => we.SortOrder)
                 .ToListAsync();
 
+            // Exercise title lookup
             Dictionary<int, string> titles = await _db.Exercises.ToDictionaryAsync(e => e.Id, e => e.Title);
 
             foreach (WorkoutExercise item in items)
@@ -154,7 +158,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(items);
         }
 
-        // ---------- Favourites ----------
+        // Favourites
 
         // GET api/workouts/favourite-ids
         [HttpGet("favourite-ids")]
@@ -166,7 +170,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(ids);
         }
 
-        // GET api/workouts/5/favourite
+        // GET api/workouts/id/favourite
         [HttpGet("{id}/favourite")]
         public async Task<IActionResult> IsFavourite(int id)
         {
@@ -176,7 +180,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(isFavourite);
         }
 
-        // POST api/workouts/5/favourite
+        // POST api/workouts/id/favourite
         // Adds the workout to the user's favourites, or removes it if it's already there
         [HttpPost("{id}/favourite")]
         [Authorize(Roles = "Admin,Member")]
@@ -188,6 +192,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             Workout? workout = await _db.Workouts
                 .FirstOrDefaultAsync(w => w.Id == id && (w.UserId == userId || w.IsPrivate == false));
 
+            // Database check
             if (workout == null)
             {
                 return NotFound(new FavouriteResponse { Success = false, IsFavourite = false, Message = "Workout could not be found." });
@@ -198,19 +203,21 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             if (existing != null)
             {
+                // Remove workout from favourites
                 _db.WorkoutFavourites.Remove(existing);
                 await _db.SaveChangesAsync();
 
                 return Ok(new FavouriteResponse { Success = true, IsFavourite = false, Message = workout.Title + " removed from your favourites." });
             }
 
+            // Add workout to favourites
             _db.WorkoutFavourites.Add(new WorkoutFavourite { UserId = userId, WorkoutId = id });
             await _db.SaveChangesAsync();
 
             return Ok(new FavouriteResponse { Success = true, IsFavourite = true, Message = workout.Title + " added to your favourites." });
         }
 
-        // ---------- Create, edit, delete (members and admins only) ----------
+        // Create, edit, delete -- members and admins only
 
         // POST api/workouts
         [HttpPost]
@@ -235,8 +242,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 UserId = userId
             };
 
-            // The workout needs its Id before its exercises can be saved,
-            // so both saves happen inside one transaction (all or nothing)
+            // The workout needs an id before its exercises can be saved
             using (IDbContextTransaction transaction = await _db.Database.BeginTransactionAsync())
             {
                 _db.Workouts.Add(workout);

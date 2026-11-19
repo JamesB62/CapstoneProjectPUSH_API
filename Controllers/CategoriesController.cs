@@ -37,7 +37,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // GET api/categories/5
+        // GET api/categories/id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCategory(int id)
         {
@@ -60,6 +60,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         {
             string title = Clean(request.Title);
 
+            // Validation
             if (title.Length < 2 || title.Length > 50)
             {
                 return BadRequest(new MessageResponse(false, "Category title must be between 2 and 50 characters."));
@@ -67,24 +68,27 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             List<Category> categories = await _db.Categories.ToListAsync();
 
+            // Database checks
             if (categories.Any(c => string.Equals(c.Title, title, StringComparison.OrdinalIgnoreCase)))
             {
                 return BadRequest(new MessageResponse(false, "A category with that title already exists."));
             }
 
+            // Add new category
             _db.Categories.Add(new Category { Title = title });
             await _db.SaveChangesAsync();
 
             return Ok(new MessageResponse(true, "Category added."));
         }
 
-        // PUT api/categories/5
+        // PUT api/categories/id
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateCategory(int id, CategoryRequest request)
         {
             string title = Clean(request.Title);
 
+            // Validation
             if (title.Length < 2 || title.Length > 50)
             {
                 return BadRequest(new MessageResponse(false, "Category title must be between 2 and 50 characters."));
@@ -92,6 +96,7 @@ namespace CapstoneProjectPUSH_API.Controllers
 
             Category? category = await _db.Categories.FindAsync(id);
 
+            // Database check
             if (category == null)
             {
                 return NotFound(new MessageResponse(false, "Category could not be found."));
@@ -104,13 +109,14 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, "A category with that title already exists."));
             }
 
+            // Update category
             category.Title = title;
             await _db.SaveChangesAsync();
 
             return Ok(new MessageResponse(true, "Category updated."));
         }
 
-        // DELETE api/categories/5
+        // DELETE api/categories/id
         // Exercises, trainers and workouts fall back to "Uncategorised"
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
@@ -118,11 +124,13 @@ namespace CapstoneProjectPUSH_API.Controllers
         {
             Category? category = await _db.Categories.FindAsync(id);
 
+            // Database check
             if (category == null)
             {
                 return NotFound(new MessageResponse(false, "Category could not be found."));
             }
 
+            // Reset foreign keys
             List<Exercise> exercises = await _db.Exercises.Where(e => e.CategoryId == id).ToListAsync();
 
             foreach (Exercise exercise in exercises)
@@ -144,6 +152,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 workout.CategoryId = 0;
             }
 
+            // Delete category
             _db.Categories.Remove(category);
 
             // All changes are saved together

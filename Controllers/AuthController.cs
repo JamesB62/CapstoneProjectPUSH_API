@@ -167,6 +167,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             });
         }
 
+        // Helpers
         // Failed requests return 400
         private IActionResult Fail(string message)
         {

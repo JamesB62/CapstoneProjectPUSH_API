@@ -4,10 +4,10 @@ using CapstoneProjectPUSH_API.Services;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
-    // Shared helpers for reading who's signed in from the login token
+    // Shared helpers
     public abstract class PushControllerBase : ControllerBase
     {
-        // Returns the signed-in user's Id, or 0 if there's no valid token
+        // Returns the signed-in user's id, or 0 if there's no valid token
         protected int GetCurrentUserId()
         {
             string? idText = User.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -37,7 +37,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // GET api/articles/5
+        // GET api/articles/id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetArticle(int id)
         {

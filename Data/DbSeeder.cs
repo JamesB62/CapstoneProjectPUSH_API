@@ -4,7 +4,6 @@ using CapstoneProjectPUSH_API.Services;
 
 namespace CapstoneProjectPUSH_API.Data
 {
-    // Seeds the remote database on startup. Each step skips itself if its table already has data.
     public static class DbSeeder
     {
         public const string SeedAdminDisplayName = "Administrator";
@@ -27,7 +26,7 @@ namespace CapstoneProjectPUSH_API.Data
             await SeedArticlesAsync(db);
         }
 
-        // ---------- Helpers ----------
+        // Helpers
 
         // Seed times are written as NZ local times, then stored as UTC
         private static DateTime SeedDate(int daysAgo, int hour)
@@ -77,7 +76,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // ---------- Users ----------
+        // Seed Users
 
         private static async Task SeedGuestAsync(PushDbContext db)
         {
@@ -107,8 +106,6 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // The admin password comes from configuration (user secrets locally, appsettings.Production.json on the server),
-        // so it never sits in the repo. If it isn't set, the admin isn't seeded.
         private static async Task SeedAdminAsync(PushDbContext db, IConfiguration configuration)
         {
             string? adminPassword = configuration["SeedAdmin:Password"];
@@ -145,7 +142,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // ---------- Categories and gyms ----------
+        // Seed Categories
 
         private static async Task SeedCategoriesAsync(PushDbContext db)
         {
@@ -175,6 +172,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
+        // Seed Gyms
         private static async Task SeedGymsAsync(PushDbContext db)
         {
             if (await db.Gyms.AnyAsync())
@@ -206,7 +204,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // ---------- Trainers ----------
+        // Seed Trainers
 
         private static async Task SeedTrainersAsync(PushDbContext db)
         {
@@ -217,7 +215,7 @@ namespace CapstoneProjectPUSH_API.Data
 
             Dictionary<string, int> categoryIds = await GetCategoryIdsAsync(db);
 
-            // Gyms looked up by "Name|City"
+            // Gyms looked up by "Name, City"
             Dictionary<string, int> gymIds = new Dictionary<string, int>();
 
             foreach (Gym gym in await db.Gyms.ToListAsync())
@@ -280,7 +278,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // ---------- Exercises ----------
+        // Seed Exercises
 
         private static async Task SeedExercisesAsync(PushDbContext db)
         {
@@ -455,7 +453,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // ---------- Workouts ----------
+        // Seed Workouts
 
         private static async Task SeedWorkoutsAsync(PushDbContext db)
         {
@@ -493,6 +491,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
+        // Seed Workout Exercises
         private static async Task SeedWorkoutExercisesAsync(PushDbContext db)
         {
             if (await db.WorkoutExercises.AnyAsync())
@@ -590,7 +589,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // ---------- Notes ----------
+        // Seed Notes
 
         private static async Task SeedNotesAsync(PushDbContext db)
         {
@@ -655,7 +654,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // ---------- Workout logs ----------
+        // Seed Workout logs
 
         private static async Task SeedWorkoutLogsAsync(PushDbContext db)
         {
@@ -754,7 +753,7 @@ namespace CapstoneProjectPUSH_API.Data
             };
         }
 
-        // ---------- Weight logs ----------
+        // Seed Weight logs
 
         private static async Task SeedWeightLogsAsync(PushDbContext db)
         {

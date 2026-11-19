@@ -20,7 +20,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // GET api/workoutlogs/mine
-        // The signed-in user's completed workouts, newest first (guests included, for the seeded stats)
         [HttpGet("mine")]
         public async Task<IActionResult> GetMyWorkoutLogs()
         {
@@ -35,13 +34,14 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // POST api/workoutlogs
-        // Guest runs aren't saved, so guests get 403 here
+        // Guest runs aren't saved -- guests recieve 403
         [HttpPost]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> AddWorkoutLog(WorkoutLogRequest request)
         {
             int userId = GetCurrentUserId();
 
+            // Validation
             if (request.DurationSeconds < 0)
             {
                 return BadRequest(new MessageResponse(false, "Duration can't be negative."));
@@ -55,6 +55,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Workout could not be found."));
             }
 
+            // Create log
             _db.WorkoutLogs.Add(new WorkoutLog
             {
                 WorkoutId = request.WorkoutId,

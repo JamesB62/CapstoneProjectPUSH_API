@@ -7,8 +7,7 @@ using CapstoneProjectPUSH_API.Services;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
-    // Photo uploads. The app sends the photo as a form upload with the field name "file".
-    // Roles are set per method (class-level and method-level [Authorize] would both have to pass).
+    // Photo uploads
     [ApiController]
     [Route("api/[controller]")]
     public class ImagesController : PushControllerBase
@@ -22,13 +21,14 @@ namespace CapstoneProjectPUSH_API.Controllers
             _imageStorage = imageStorage;
         }
 
-        // ---------- Profile picture (members and admins; guests can't upload) ----------
+        // Profile picture -- for members and admins, guests can't upload
 
         // POST api/images/profile
         [HttpPost("profile")]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> UploadProfileImage(IFormFile file)
         {
+            // Validate image file
             string? error = ImageStorage.Validate(file);
 
             if (error != null)
@@ -36,6 +36,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(error);
             }
 
+            // Validate user id
             User? user = await _db.Users.FindAsync(GetCurrentUserId());
 
             if (user == null)
@@ -43,12 +44,15 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new ImageResponse { Success = false, Message = "Account could not be found." });
             }
 
+            // Temp saves previous image and new image, while form is still in progress
             string oldImageUrl = user.ProfileImageUrl;
             string newImageUrl = await _imageStorage.SaveAsync(file);
 
+            // Updates profile image
             user.ProfileImageUrl = newImageUrl;
             await _db.SaveChangesAsync();
 
+            // Delete previous image -- unused now
             _imageStorage.Delete(oldImageUrl);
 
             return Ok(new ImageResponse { Success = true, Message = "Profile picture updated.", ImageUrl = newImageUrl });
@@ -59,6 +63,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> RemoveProfileImage()
         {
+            // Validate user id
             User? user = await _db.Users.FindAsync(GetCurrentUserId());
 
             if (user == null)
@@ -66,23 +71,27 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new ImageResponse { Success = false, Message = "Account could not be found." });
             }
 
+            // Temp saves previous image, while form is still in progress
             string oldImageUrl = user.ProfileImageUrl;
 
+            // Updates profile image -- falls back to placeholder
             user.ProfileImageUrl = string.Empty;
             await _db.SaveChangesAsync();
 
+            // Delete previous image -- unused now
             _imageStorage.Delete(oldImageUrl);
 
             return Ok(new ImageResponse { Success = true, Message = "Profile picture removed." });
         }
 
-        // ---------- Trainer photos (admin) ----------
+        // Trainer photos -- admin only
 
-        // POST api/images/trainers/5
+        // POST api/images/trainers/id
         [HttpPost("trainers/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UploadTrainerImage(int id, IFormFile file)
         {
+            // Validate image file
             string? error = ImageStorage.Validate(file);
 
             if (error != null)
@@ -90,6 +99,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(error);
             }
 
+            // Find trainer id
             Trainer? trainer = await _db.Trainers.FindAsync(id);
 
             if (trainer == null)
@@ -97,22 +107,26 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new ImageResponse { Success = false, Message = "Trainer could not be found." });
             }
 
+            // Temp saves previous image and new image, while form is still in progress
             string oldImageUrl = trainer.ProfileImageUrl;
             string newImageUrl = await _imageStorage.SaveAsync(file);
 
+            // Updates trainer image
             trainer.ProfileImageUrl = newImageUrl;
             await _db.SaveChangesAsync();
 
+            // Delete previous image -- unused now
             _imageStorage.Delete(oldImageUrl);
 
             return Ok(new ImageResponse { Success = true, Message = "Trainer photo updated.", ImageUrl = newImageUrl });
         }
 
-        // DELETE api/images/trainers/5
+        // DELETE api/images/trainers/id
         [HttpDelete("trainers/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RemoveTrainerImage(int id)
         {
+            // Find trainer id
             Trainer? trainer = await _db.Trainers.FindAsync(id);
 
             if (trainer == null)
@@ -120,23 +134,27 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new ImageResponse { Success = false, Message = "Trainer could not be found." });
             }
 
+            // Temp saves previous image, while form is still in progress
             string oldImageUrl = trainer.ProfileImageUrl;
 
+            // Updates profile image -- falls back to placeholder
             trainer.ProfileImageUrl = string.Empty;
             await _db.SaveChangesAsync();
 
+            // Delete previous image -- unused now
             _imageStorage.Delete(oldImageUrl);
 
             return Ok(new ImageResponse { Success = true, Message = "Trainer photo removed." });
         }
 
-        // ---------- Exercise photos (admin) ----------
+        // Exercise photos -- admin only
 
-        // POST api/images/exercises/5
+        // POST api/images/exercises/id
         [HttpPost("exercises/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UploadExerciseImage(int id, IFormFile file)
         {
+            // Validate image file
             string? error = ImageStorage.Validate(file);
 
             if (error != null)
@@ -144,6 +162,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail(error);
             }
 
+            // Find exercise by id
             Exercise? exercise = await _db.Exercises.FindAsync(id);
 
             if (exercise == null)
@@ -151,22 +170,26 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new ImageResponse { Success = false, Message = "Exercise could not be found." });
             }
 
+            // Temp stores images while form is in progress
             string oldImageUrl = exercise.ImageUrl;
             string newImageUrl = await _imageStorage.SaveAsync(file);
 
+            // Updates exercise image
             exercise.ImageUrl = newImageUrl;
             await _db.SaveChangesAsync();
 
+            // Deletes old image -- unused now
             _imageStorage.Delete(oldImageUrl);
 
             return Ok(new ImageResponse { Success = true, Message = "Exercise photo updated.", ImageUrl = newImageUrl });
         }
 
-        // DELETE api/images/exercises/5
+        // DELETE api/images/exercises/id
         [HttpDelete("exercises/{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RemoveExerciseImage(int id)
         {
+            // Find exercise by id
             Exercise? exercise = await _db.Exercises.FindAsync(id);
 
             if (exercise == null)
@@ -174,17 +197,20 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new ImageResponse { Success = false, Message = "Exercise could not be found." });
             }
 
+            // Temp stores image
             string oldImageUrl = exercise.ImageUrl;
 
+            // Removes exercise image
             exercise.ImageUrl = string.Empty;
             await _db.SaveChangesAsync();
 
+            // Deletes old image -- unused now
             _imageStorage.Delete(oldImageUrl);
 
             return Ok(new ImageResponse { Success = true, Message = "Exercise photo removed." });
         }
 
-        // ---------- Helpers ----------
+        // Helpers
 
         private IActionResult Fail(string message)
         {

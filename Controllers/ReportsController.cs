@@ -7,8 +7,6 @@ using CapstoneProjectPUSH_API.Models;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
-    // Members and admins can report; everything else is admin only.
-    // (Roles are set per method: class-level and method-level [Authorize] would both have to pass.)
     [ApiController]
     [Route("api/[controller]")]
     public class ReportsController : PushControllerBase
@@ -20,13 +18,14 @@ namespace CapstoneProjectPUSH_API.Controllers
             _db = db;
         }
 
-        // ---------- Reporting (members and admins) ----------
+        // Reporting -- members and admins only
 
         // POST api/reports
         [HttpPost]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> AddReport(ReportRequest request)
         {
+            // Validation
             int userId = GetCurrentUserId();
             string reason = Clean(request.Reason);
 
@@ -40,8 +39,10 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, "Reason must be 500 characters or fewer."));
             }
 
+            // Finds reported workout by id
             Workout? workout = await _db.Workouts.FindAsync(request.WorkoutId);
 
+            // Database checks
             if (workout == null || workout.IsPrivate)
             {
                 return NotFound(new MessageResponse(false, "This workout could not be found."));
@@ -60,6 +61,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, "You've already reported this workout."));
             }
 
+            // Creates new report
             _db.Reports.Add(new Report
             {
                 WorkoutId = request.WorkoutId,
@@ -72,18 +74,19 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "An admin will review this workout."));
         }
 
-        // ---------- Admin ----------
+        // Admin actions
 
         // GET api/reports
-        // All reports, newest first (the app filters pending/all)
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetReports()
         {
+            // Gets all reports
             List<Report> reports = await _db.Reports
                 .OrderByDescending(r => r.DateTimeCreated)
                 .ToListAsync();
 
+            // Gets report and related details
             await FillDetailsAsync(reports);
 
             return Ok(reports);
@@ -98,7 +101,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(count);
         }
 
-        // GET api/reports/5
+        // GET api/reports/id
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetReport(int id)
@@ -115,12 +118,12 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(report);
         }
 
-        // GET api/reports/workout/5
-        // The reported workout with its details (works even if it's private)
+        // GET api/reports/workout/id
         [HttpGet("workout/{workoutId}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetReportedWorkout(int workoutId)
         {
+            // Finds reported workout by id
             Workout? workout = await _db.Workouts.FindAsync(workoutId);
 
             if (workout == null)
@@ -128,6 +131,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Workout could not be found."));
             }
 
+            // Finds workout category
             Category? category = await _db.Categories.FindAsync(workout.CategoryId);
 
             if (category != null)
@@ -139,6 +143,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 workout.CategoryTitle = "Uncategorised";
             }
 
+            // Finds workout owner
             User? owner = await _db.Users.FindAsync(workout.UserId);
 
             if (owner != null)
@@ -150,6 +155,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 workout.UserDisplayName = "Deleted user";
             }
 
+            // Finds workout exercises
             List<WorkoutExercise> items = await _db.WorkoutExercises.Where(we => we.WorkoutId == workoutId).ToListAsync();
 
             workout.ExerciseCount = items.Count;
@@ -159,13 +165,14 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(workout);
         }
 
-        // POST api/reports/5/dismiss
+        // POST api/reports/id/dismiss
         [HttpPost("{id}/dismiss")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DismissReport(int id)
         {
             Report? report = await _db.Reports.FindAsync(id);
 
+            // Database check
             if (report == null)
             {
                 return NotFound(new MessageResponse(false, "Report could not be found."));
@@ -176,6 +183,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, "This report has already been resolved."));
             }
 
+            // Update report
             report.IsResolved = true;
             report.DateTimeResolved = DateTime.UtcNow;
 
@@ -184,15 +192,15 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "Report dismissed."));
         }
 
-        // POST api/reports/5/remove-content
-        // Deletes the reported workout (same cleanup as a normal workout delete)
-        // and resolves every pending report on it
+        // POST api/reports/id/remove-content
+        // Deletes the reported workout
         [HttpPost("{id}/remove-content")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RemoveContent(int id)
         {
             Report? report = await _db.Reports.FindAsync(id);
 
+            // Database check
             if (report == null)
             {
                 return NotFound(new MessageResponse(false, "Report could not be found."));
@@ -203,9 +211,11 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, "This report has already been resolved."));
             }
 
+            // Update report
             int workoutId = report.WorkoutId;
             DateTime resolvedAt = DateTime.UtcNow;
 
+            // Finds reported workout
             Workout? workout = await _db.Workouts.FindAsync(workoutId);
 
             if (workout != null)
@@ -214,16 +224,19 @@ namespace CapstoneProjectPUSH_API.Controllers
                 List<WorkoutFavourite> favourites = await _db.WorkoutFavourites.Where(f => f.WorkoutId == workoutId).ToListAsync();
                 List<Note> notes = await _db.Notes.Where(n => n.WorkoutId == workoutId).ToListAsync();
 
+                // Removes all associated content
                 _db.WorkoutExercises.RemoveRange(items);
                 _db.WorkoutFavourites.RemoveRange(favourites);
                 _db.Notes.RemoveRange(notes);
                 _db.Workouts.Remove(workout);
             }
 
+            // Gets all unresolved reports for reported
             List<Report> pendingReports = await _db.Reports
                 .Where(r => r.WorkoutId == workoutId && !r.IsResolved)
                 .ToListAsync();
 
+            // Updates all reports
             foreach (Report pending in pendingReports)
             {
                 pending.IsResolved = true;
@@ -236,8 +249,8 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "Workout removed."));
         }
 
-        // ---------- Helpers ----------
-
+        // Helpers
+        // Fills the report content with lookups
         private async Task FillDetailsAsync(List<Report> reports)
         {
             List<int> workoutIds = reports.Select(r => r.WorkoutId).Distinct().ToList();
@@ -276,6 +289,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
+        // Cleans input
         private static string Clean(string? value)
         {
             if (value == null)

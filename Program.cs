@@ -1,3 +1,7 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using CapstoneProjectPUSH_API.Services;
 using Microsoft.EntityFrameworkCore;
 using CapstoneProjectPUSH_API.Data;
 
@@ -14,7 +18,31 @@ builder.Services.AddDbContext<PushDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("PushDb"));
 });
 
+builder.Services.AddScoped<TokenService>();
+
+string jwtKey = TokenService.GetKey(builder.Configuration);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
 var app = builder.Build();
+
+// Seed the database
+using (IServiceScope scope = app.Services.CreateScope())
+{
+    PushDbContext db = scope.ServiceProvider.GetRequiredService<PushDbContext>();
+    await DbSeeder.SeedAsync(db, app.Configuration);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -24,6 +52,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

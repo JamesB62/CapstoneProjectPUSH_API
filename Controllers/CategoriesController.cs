@@ -1,13 +1,15 @@
-﻿using CapstoneProjectPUSH_API.Data;
-using CapstoneProjectPUSH_API.Models;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using CapstoneProjectPUSH_API.Data;
+using CapstoneProjectPUSH_API.Dtos;
+using CapstoneProjectPUSH_API.Models;
 
 namespace CapstoneProjectPUSH_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CategoriesController : ControllerBase
+    public class CategoriesController : PushControllerBase
     {
         private readonly PushDbContext _db;
 
@@ -16,28 +18,149 @@ namespace CapstoneProjectPUSH_API.Controllers
             _db = db;
         }
 
+        // GET api/categories
         [HttpGet]
         public async Task<IActionResult> GetCategories()
         {
-            List<Category> categories = await _db.Categories.OrderBy(c => c.Name).ToListAsync();
+            List<Category> categories = await _db.Categories
+                .OrderBy(c => c.Title)
+                .ToListAsync();
+
             return Ok(categories);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> AddCategory(Category category)
+        // GET api/categories/count
+        [HttpGet("count")]
+        public async Task<IActionResult> GetCategoryCount()
         {
-            bool nameTaken = await _db.Categories.AnyAsync(c => c.Name == category.Name);
+            int count = await _db.Categories.CountAsync();
+            return Ok(count);
+        }
 
-            if (nameTaken)
+        // GET api/categories/5
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCategory(int id)
+        {
+            Category? category = await _db.Categories.FindAsync(id);
+
+            if (category == null)
             {
-                return Conflict("A category with that name already exists.");
+                return NotFound(new MessageResponse(false, "Category could not be found."));
             }
             else
             {
-                _db.Categories.Add(category);
-                await _db.SaveChangesAsync();
                 return Ok(category);
             }
+        }
+
+        // POST api/categories
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddCategory(CategoryRequest request)
+        {
+            string title = Clean(request.Title);
+
+            if (title.Length < 2 || title.Length > 50)
+            {
+                return BadRequest(new MessageResponse(false, "Category title must be between 2 and 50 characters."));
+            }
+
+            List<Category> categories = await _db.Categories.ToListAsync();
+
+            if (categories.Any(c => string.Equals(c.Title, title, StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new MessageResponse(false, "A category with that title already exists."));
+            }
+
+            _db.Categories.Add(new Category { Title = title });
+            await _db.SaveChangesAsync();
+
+            return Ok(new MessageResponse(true, "Category added."));
+        }
+
+        // PUT api/categories/5
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateCategory(int id, CategoryRequest request)
+        {
+            string title = Clean(request.Title);
+
+            if (title.Length < 2 || title.Length > 50)
+            {
+                return BadRequest(new MessageResponse(false, "Category title must be between 2 and 50 characters."));
+            }
+
+            Category? category = await _db.Categories.FindAsync(id);
+
+            if (category == null)
+            {
+                return NotFound(new MessageResponse(false, "Category could not be found."));
+            }
+
+            List<Category> categories = await _db.Categories.ToListAsync();
+
+            if (categories.Any(c => c.Id != id && string.Equals(c.Title, title, StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new MessageResponse(false, "A category with that title already exists."));
+            }
+
+            category.Title = title;
+            await _db.SaveChangesAsync();
+
+            return Ok(new MessageResponse(true, "Category updated."));
+        }
+
+        // DELETE api/categories/5
+        // Exercises, trainers and workouts fall back to "Uncategorised"
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            Category? category = await _db.Categories.FindAsync(id);
+
+            if (category == null)
+            {
+                return NotFound(new MessageResponse(false, "Category could not be found."));
+            }
+
+            List<Exercise> exercises = await _db.Exercises.Where(e => e.CategoryId == id).ToListAsync();
+
+            foreach (Exercise exercise in exercises)
+            {
+                exercise.CategoryId = 0;
+            }
+
+            List<Trainer> trainers = await _db.Trainers.Where(t => t.CategoryId == id).ToListAsync();
+
+            foreach (Trainer trainer in trainers)
+            {
+                trainer.CategoryId = 0;
+            }
+
+            List<Workout> workouts = await _db.Workouts.Where(w => w.CategoryId == id).ToListAsync();
+
+            foreach (Workout workout in workouts)
+            {
+                workout.CategoryId = 0;
+            }
+
+            _db.Categories.Remove(category);
+
+            // All changes are saved together
+            await _db.SaveChangesAsync();
+
+            return Ok(new MessageResponse(true, "Category deleted."));
+        }
+
+        // Helpers
+        private static string Clean(string? value)
+        {
+            if (value == null)
+            {
+                return string.Empty;
+            }
+
+            return value.Trim();
         }
     }
 }

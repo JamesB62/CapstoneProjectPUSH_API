@@ -1,7 +1,6 @@
 namespace CapstoneProjectPUSH_API.Services
 {
-    // Saves uploaded photos in the "uploads" folder on the server.
-    // The database stores the web path (e.g. "/uploads/abc.jpg"); the app adds the API's address in front.
+    // Saves uploaded photos in the "uploads" folder on the server
     public class ImageStorage
     {
         public const string RequestPath = "/uploads";
@@ -19,13 +18,13 @@ namespace CapstoneProjectPUSH_API.Services
             _logger = logger;
         }
 
-        // Shared with Program.cs so both use the same folder
+        // Defines the upload location -- shared with Program.cs so both use the same folder
         public static string GetUploadsFolder(IWebHostEnvironment environment)
         {
             return Path.Combine(environment.ContentRootPath, "uploads");
         }
 
-        // Returns an error message, or null if the file is fine
+        // Validate image file -- returns an error message, or null if the file is fine
         public static string? Validate(IFormFile? file)
         {
             if (file == null || file.Length == 0)
@@ -48,7 +47,7 @@ namespace CapstoneProjectPUSH_API.Services
             return null;
         }
 
-        // Saves the file with a new random name and returns its web path
+        // Saves the image with a new random name and returns its path
         public async Task<string> SaveAsync(IFormFile file)
         {
             Directory.CreateDirectory(_uploadsFolder);
@@ -65,8 +64,7 @@ namespace CapstoneProjectPUSH_API.Services
             return RequestPath + "/" + fileName;
         }
 
-        // Deletes a photo saved by SaveAsync. Anything else (empty, app resources like
-        // "article_placeholder.png") is left alone.
+        // Deletes a photo
         public void Delete(string? imageUrl)
         {
             if (string.IsNullOrWhiteSpace(imageUrl))

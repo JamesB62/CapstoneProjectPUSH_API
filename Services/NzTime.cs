@@ -1,8 +1,9 @@
 namespace CapstoneProjectPUSH_API.Services
 {
-    // The server isn't in New Zealand, so "today" is worked out in NZ time and converted to UTC
+    // Converts datetime to NZ datetime, then converts it to UTC -- since the server isn't in New Zealand
     public static class NzTime
     {
+        // Gets the time zone for pacific/auckland -- falls back to UTC if not found
         public static TimeZoneInfo GetTimeZone()
         {
             try
@@ -15,7 +16,7 @@ namespace CapstoneProjectPUSH_API.Services
             }
         }
 
-        // Start of today in NZ, as a UTC time
+        // Start of today in NZ, converted to UTC datetime
         public static DateTime TodayStartUtc()
         {
             TimeZoneInfo nzTimeZone = GetTimeZone();

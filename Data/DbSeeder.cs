@@ -27,7 +27,6 @@ namespace CapstoneProjectPUSH_API.Data
         }
 
         // Helpers
-
         // Seed times are written as NZ local times, then stored as UTC
         private static DateTime SeedDate(int daysAgo, int hour)
         {
@@ -76,10 +75,10 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // Seed Users
-
+        // Seed guest
         private static async Task SeedGuestAsync(PushDbContext db)
         {
+            // Database check
             bool guestExists = await db.Users.AnyAsync(u => u.IsGuest);
 
             if (guestExists)
@@ -95,6 +94,7 @@ namespace CapstoneProjectPUSH_API.Data
                 return;
             }
 
+            // Add guest
             db.Users.Add(new User
             {
                 Email = "guest@push.local",
@@ -106,16 +106,19 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
+        // Seed admin account -- details stored in appsettings or user secrets
         private static async Task SeedAdminAsync(PushDbContext db, IConfiguration configuration)
         {
             string? adminPassword = configuration["SeedAdmin:Password"];
 
+            // Validation
             if (string.IsNullOrWhiteSpace(adminPassword))
             {
                 System.Diagnostics.Debug.WriteLine("Seed skipped: admin (SeedAdmin:Password not set)");
                 return;
             }
 
+            // Database check
             bool adminExists = await db.Users.AnyAsync(u => u.IsAdmin);
 
             if (adminExists)
@@ -131,6 +134,7 @@ namespace CapstoneProjectPUSH_API.Data
                 return;
             }
 
+            // Add admin
             db.Users.Add(new User
             {
                 Email = SeedAdminEmail,
@@ -142,8 +146,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // Seed Categories
-
+        // Seed categories
         private static async Task SeedCategoriesAsync(PushDbContext db)
         {
             if (await db.Categories.AnyAsync())
@@ -172,7 +175,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // Seed Gyms
+        // Seed gyms
         private static async Task SeedGymsAsync(PushDbContext db)
         {
             if (await db.Gyms.AnyAsync())
@@ -204,8 +207,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // Seed Trainers
-
+        // Seed trainers
         private static async Task SeedTrainersAsync(PushDbContext db)
         {
             if (await db.Trainers.AnyAsync())
@@ -215,7 +217,7 @@ namespace CapstoneProjectPUSH_API.Data
 
             Dictionary<string, int> categoryIds = await GetCategoryIdsAsync(db);
 
-            // Gyms looked up by "Name, City"
+            // Gyms looked up by name, city
             Dictionary<string, int> gymIds = new Dictionary<string, int>();
 
             foreach (Gym gym in await db.Gyms.ToListAsync())
@@ -278,8 +280,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // Seed Exercises
-
+        // Seed exercises
         private static async Task SeedExercisesAsync(PushDbContext db)
         {
             if (await db.Exercises.AnyAsync())
@@ -404,8 +405,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // ---------- Articles ----------
-
+        // Seed articles
         private static async Task SeedArticlesAsync(PushDbContext db)
         {
             if (await db.Articles.AnyAsync())
@@ -453,8 +453,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // Seed Workouts
-
+        // Seed workouts
         private static async Task SeedWorkoutsAsync(PushDbContext db)
         {
             if (await db.Workouts.AnyAsync())
@@ -462,6 +461,7 @@ namespace CapstoneProjectPUSH_API.Data
                 return;
             }
 
+            // Database check for admin and guest
             Dictionary<string, int> categoryIds = await GetCategoryIdsAsync(db);
             User? admin = await db.Users.FirstOrDefaultAsync(u => u.Email == SeedAdminEmail);
             User? guest = await db.Users.FirstOrDefaultAsync(u => u.IsGuest);
@@ -470,7 +470,7 @@ namespace CapstoneProjectPUSH_API.Data
 
             if (admin != null)
             {
-                // Must stay private
+                // Admin workouts -- must stay private
                 workouts.Add(new Workout { Title = "Strength Day", UserId = admin.Id, CategoryId = GetId(categoryIds, "Strength Training"), IsPrivate = true });
                 workouts.Add(new Workout { Title = "Morning HIIT", UserId = admin.Id, CategoryId = GetId(categoryIds, "HIIT"), IsPrivate = true });
                 workouts.Add(new Workout { Title = "Yoga Flow", UserId = admin.Id, CategoryId = GetId(categoryIds, "Yoga"), IsPrivate = true });
@@ -478,7 +478,7 @@ namespace CapstoneProjectPUSH_API.Data
 
             if (guest != null)
             {
-                // Must stay private
+                // Guest workouts -- must stay private
                 workouts.Add(new Workout { Title = "Beginner Full Body", UserId = guest.Id, CategoryId = GetId(categoryIds, "Bodyweight"), IsPrivate = true });
                 workouts.Add(new Workout { Title = "Quick Cardio", UserId = guest.Id, CategoryId = GetId(categoryIds, "Cardio"), IsPrivate = true });
                 workouts.Add(new Workout { Title = "Gentle Stretch", UserId = guest.Id, CategoryId = GetId(categoryIds, "Flexibility & Mobility"), IsPrivate = true });
@@ -491,7 +491,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // Seed Workout Exercises
+        // Seed workout exercises
         private static async Task SeedWorkoutExercisesAsync(PushDbContext db)
         {
             if (await db.WorkoutExercises.AnyAsync())
@@ -499,6 +499,7 @@ namespace CapstoneProjectPUSH_API.Data
                 return;
             }
 
+            // Look ups
             Dictionary<string, int> workoutIds = new Dictionary<string, int>();
 
             foreach (Workout workout in await db.Workouts.ToListAsync())
@@ -515,17 +516,20 @@ namespace CapstoneProjectPUSH_API.Data
 
             List<WorkoutExercise> workoutExercises = new List<WorkoutExercise>();
 
+            // Local add function
             void Add(string workoutTitle, string exerciseTitle, int sortOrder, int sets, int reps)
             {
                 int workoutId;
                 int exerciseId;
 
+                // Look ups
                 if (!workoutIds.TryGetValue(workoutTitle, out workoutId) || !exerciseIds.TryGetValue(exerciseTitle, out exerciseId))
                 {
                     System.Diagnostics.Debug.WriteLine("Seed skipped: " + workoutTitle + " / " + exerciseTitle);
                     return;
                 }
 
+                // Add workout exercise
                 workoutExercises.Add(new WorkoutExercise
                 {
                     WorkoutId = workoutId,
@@ -536,17 +540,20 @@ namespace CapstoneProjectPUSH_API.Data
                 });
             }
 
+            // Local add function -- for timed workouts
             void AddTimed(string workoutTitle, string exerciseTitle, int sortOrder, int minutes)
             {
                 int workoutId;
                 int exerciseId;
 
+                // Look ups
                 if (!workoutIds.TryGetValue(workoutTitle, out workoutId) || !exerciseIds.TryGetValue(exerciseTitle, out exerciseId))
                 {
                     System.Diagnostics.Debug.WriteLine("Seed skipped: " + workoutTitle + " / " + exerciseTitle);
                     return;
                 }
 
+                // Add workout exercise
                 workoutExercises.Add(new WorkoutExercise
                 {
                     WorkoutId = workoutId,
@@ -589,8 +596,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // Seed Notes
-
+        // Seed notes
         private static async Task SeedNotesAsync(PushDbContext db)
         {
             if (await db.Notes.AnyAsync())
@@ -654,8 +660,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
         }
 
-        // Seed Workout logs
-
+        // Seed workout logs
         private static async Task SeedWorkoutLogsAsync(PushDbContext db)
         {
             if (await db.WorkoutLogs.AnyAsync())
@@ -741,7 +746,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
-        // The log belongs to the workout's owner
+        // Local create workout log function
         private static WorkoutLog CreateWorkoutLog(Workout workout, int daysAgo, int minutes)
         {
             return new WorkoutLog
@@ -753,8 +758,7 @@ namespace CapstoneProjectPUSH_API.Data
             };
         }
 
-        // Seed Weight logs
-
+        // Seed weight logs
         private static async Task SeedWeightLogsAsync(PushDbContext db)
         {
             if (await db.WeightLogs.AnyAsync())
@@ -830,6 +834,7 @@ namespace CapstoneProjectPUSH_API.Data
             await db.SaveChangesAsync();
         }
 
+        // Local create weight log function
         private static WeightLog CreateWeightLog(int userId, int daysAgo, double weightKg)
         {
             return new WeightLog

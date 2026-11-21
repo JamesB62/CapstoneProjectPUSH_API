@@ -22,7 +22,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Own workouts -- guests included
-
         // GET api/workouts/mine
         [HttpGet("mine")]
         public async Task<IActionResult> GetMyWorkouts()
@@ -65,7 +64,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Community workouts -- members and admins only
-
         // GET api/workouts/community
         [HttpGet("community")]
         [Authorize(Roles = "Admin,Member")]
@@ -95,6 +93,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> GetCommunityWorkout(int id)
         {
+            // Database check
             Workout? workout = await _db.Workouts.FirstOrDefaultAsync(w => w.Id == id && w.IsPrivate == false);
 
             if (workout == null)
@@ -102,6 +101,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Workout could not be found."));
             }
 
+            // Fill
             await FillCategoryTitleAsync(workout);
 
             User? owner = await _db.Users.FindAsync(workout.UserId);
@@ -119,7 +119,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Workout exercises
-
         // GET api/workouts/id/exercises
         [HttpGet("{id}/exercises")]
         public async Task<IActionResult> GetWorkoutExercises(int id)
@@ -159,7 +158,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Favourites
-
         // GET api/workouts/favourite-ids
         [HttpGet("favourite-ids")]
         public async Task<IActionResult> GetFavouriteWorkoutIds()
@@ -218,7 +216,6 @@ namespace CapstoneProjectPUSH_API.Controllers
         }
 
         // Create, edit, delete -- members and admins only
-
         // POST api/workouts
         [HttpPost]
         [Authorize(Roles = "Admin,Member")]
@@ -227,6 +224,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             int userId = GetCurrentUserId();
             string title = Clean(request.Title);
 
+            // Validation
             string? error = await ValidateAsync(title, request.Exercises);
 
             if (error != null)
@@ -234,6 +232,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new WorkoutCreatedResponse { Success = false, Message = error });
             }
 
+            // Create workout
             Workout workout = new Workout
             {
                 Title = title,
@@ -260,7 +259,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new WorkoutCreatedResponse { Success = true, Message = "Workout saved.", WorkoutId = workout.Id });
         }
 
-        // PUT api/workouts/5
+        // PUT api/workouts/id
         // Updates the details and replaces all of its exercises
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Member")]
@@ -268,6 +267,7 @@ namespace CapstoneProjectPUSH_API.Controllers
         {
             int userId = GetCurrentUserId();
 
+            // Database check
             Workout? existing = await _db.Workouts.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
 
             if (existing == null)
@@ -275,6 +275,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new MessageResponse(false, "Workout could not be found."));
             }
 
+            // Validation
             string title = Clean(request.Title);
             string? error = await ValidateAsync(title, request.Exercises);
 
@@ -283,6 +284,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return BadRequest(new MessageResponse(false, error));
             }
 
+            // Update workout
             existing.Title = title;
             existing.CategoryId = request.CategoryId;
             existing.IsPrivate = request.IsPrivate;
@@ -301,14 +303,15 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "Workout updated."));
         }
 
-        // DELETE api/workouts/5
-        // Also removes its exercises, notes and everyone's favourites of it
+        // DELETE api/workouts/id
+        // Also removes its exercises, notes and favourites
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Member")]
         public async Task<IActionResult> DeleteWorkout(int id)
         {
             int userId = GetCurrentUserId();
 
+            // Database checks
             Workout? workout = await _db.Workouts.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
 
             if (workout == null)
@@ -320,6 +323,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             List<WorkoutFavourite> favourites = await _db.WorkoutFavourites.Where(f => f.WorkoutId == id).ToListAsync();
             List<Note> notes = await _db.Notes.Where(n => n.WorkoutId == id).ToListAsync();
 
+            // Delete workout and all related items
             _db.WorkoutExercises.RemoveRange(items);
             _db.WorkoutFavourites.RemoveRange(favourites);
             _db.Notes.RemoveRange(notes);
@@ -331,8 +335,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new MessageResponse(true, "Workout deleted."));
         }
 
-        // ---------- Helpers ----------
-
+        // Helpers
         // Fills in category, counts, favourites (and owner names for community workouts)
         private async Task FillWorkoutSummariesAsync(List<Workout> workouts, int userId, bool includeDisplayNames)
         {
@@ -341,13 +344,17 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return;
             }
 
+            // Gets workout exercises
             List<int> workoutIds = workouts.Select(w => w.Id).ToList();
 
             List<WorkoutExercise> workoutExercises = await _db.WorkoutExercises
                 .Where(we => workoutIds.Contains(we.WorkoutId))
                 .ToListAsync();
 
+            // Groups workout exercises by workout
             ILookup<int, WorkoutExercise> exercisesByWorkout = workoutExercises.ToLookup(we => we.WorkoutId);
+
+            // Loads category titles and favourite workouts
             Dictionary<int, string> categoryTitles = await _db.Categories.ToDictionaryAsync(c => c.Id, c => c.Title);
             List<int> favouriteIds = await GetFavouriteIdsAsync(userId);
 
@@ -358,6 +365,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 displayNames = await _db.Users.ToDictionaryAsync(u => u.Id, u => u.DisplayName);
             }
 
+            // Fill details with fall backs if needed
             foreach (Workout workout in workouts)
             {
                 List<WorkoutExercise> exercises = exercisesByWorkout[workout.Id].ToList();
@@ -394,6 +402,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
+        // Category title lookup
         private async Task FillCategoryTitleAsync(Workout workout)
         {
             Category? category = await _db.Categories.FindAsync(workout.CategoryId);
@@ -408,6 +417,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
+        // Gets favourite workouts
         private async Task<List<int>> GetFavouriteIdsAsync(int userId)
         {
             return await _db.WorkoutFavourites
@@ -416,7 +426,7 @@ namespace CapstoneProjectPUSH_API.Controllers
                 .ToListAsync();
         }
 
-        // Owner, admins, and members (not guests) for shared workouts
+        // Owner, admins, and members check for shared workouts
         private bool CanViewWorkout(Workout workout)
         {
             if (IsCurrentUserAdmin())
@@ -437,7 +447,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return false;
         }
 
-        // Basic checks so bad data can't be saved
+        // Validation
         private async Task<string?> ValidateAsync(string title, List<WorkoutExerciseRequest> exercises)
         {
             if (title.Length == 0 || title.Length > 100)
@@ -461,6 +471,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             return null;
         }
 
+        // Create workout exercise object
         private static WorkoutExercise CreateWorkoutExercise(WorkoutExerciseRequest item, int workoutId)
         {
             return new WorkoutExercise
@@ -474,6 +485,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             };
         }
 
+        // Clean input
         private static string Clean(string? value)
         {
             if (value == null)

@@ -2,7 +2,7 @@ using System.Net.Mail;
 
 namespace CapstoneProjectPUSH_API.Services
 {
-    // Same validation rules as the app's UserService
+    // Same validation rules as the app
     public static class AccountRules
     {
         public const int MinDisplayNameLength = 5;
@@ -10,6 +10,7 @@ namespace CapstoneProjectPUSH_API.Services
 
         public const string PasswordRequirementsText = "Password must be at least 8 characters and contain at least one letter and one number.";
 
+        // Clean email input
         public static string NormaliseEmail(string? email)
         {
             if (email == null)
@@ -20,6 +21,7 @@ namespace CapstoneProjectPUSH_API.Services
             return email.Trim().ToLowerInvariant();
         }
 
+        // Clean display name input
         public static string NormaliseDisplayName(string? displayName)
         {
             if (displayName == null)
@@ -30,6 +32,7 @@ namespace CapstoneProjectPUSH_API.Services
             return displayName.Trim();
         }
 
+        // Validate display name
         public static bool IsValidDisplayName(string displayName)
         {
             if (displayName.Length < MinDisplayNameLength || displayName.Length > MaxDisplayNameLength)
@@ -40,6 +43,7 @@ namespace CapstoneProjectPUSH_API.Services
             return true;
         }
 
+        // Validate email
         public static bool IsValidEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email) || email.Length > 254)
@@ -58,6 +62,7 @@ namespace CapstoneProjectPUSH_API.Services
             }
         }
 
+        // Validate password
         public static bool IsStrongPassword(string? password)
         {
             if (string.IsNullOrEmpty(password))

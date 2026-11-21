@@ -10,23 +10,25 @@ using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+// Adds services
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Applies the database rules defined in pushdbcontext.cs
 builder.Services.AddDbContext<PushDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("PushDb"));
 });
 
+// Adds services pt. 2
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<EmailSender>();
 builder.Services.AddScoped<ImageStorage>();
 
+// Checks jwt token key
 string jwtKey = TokenService.GetKey(builder.Configuration);
 
+// Registers bearer tokens as the default authentication method
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -79,7 +81,6 @@ using (IServiceScope scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db, app.Configuration);
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -87,7 +88,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Serve uploaded photos from the "uploads" folder at /uploads/...
+// Serves uploaded photos
 string uploadsFolder = ImageStorage.GetUploadsFolder(app.Environment);
 Directory.CreateDirectory(uploadsFolder);
 

@@ -20,10 +20,12 @@ namespace CapstoneProjectPUSH_API.Services
             _configuration = configuration;
         }
 
+        // Creates a user token
         public string CreateToken(User user)
         {
             string role;
 
+            // Finds the current user's role
             if (user.IsAdmin)
             {
                 role = AdminRole;
@@ -37,6 +39,7 @@ namespace CapstoneProjectPUSH_API.Services
                 role = MemberRole;
             }
 
+            // Important info about the current user stored in the token
             List<Claim> claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -44,10 +47,12 @@ namespace CapstoneProjectPUSH_API.Services
                 new Claim(ClaimTypes.Role, role)
             };
 
+            // Secures the token key -- stored in appsettings or user secrets
             string keyText = GetKey(_configuration);
             SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyText));
             SigningCredentials credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            // Creates the token, with an experation date
             SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
@@ -59,7 +64,7 @@ namespace CapstoneProjectPUSH_API.Services
             return handler.CreateToken(descriptor);
         }
 
-        // Shared with Program.cs so both use the same key
+        // Aborts token methods early if token is missing or shorter than expecteed -- shared with Program.cs so both use the same key
         public static string GetKey(IConfiguration configuration)
         {
             string? keyText = configuration["Jwt:Key"];

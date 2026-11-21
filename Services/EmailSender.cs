@@ -4,9 +4,7 @@ using MimeKit;
 
 namespace CapstoneProjectPUSH_API.Services
 {
-    // Sends email through Gmail using the "Email" settings from configuration
-    // (user secrets locally, appsettings.Production.json on the server).
-    // If the settings are missing, the email is written to the log instead.
+    // Sends email through gmail -- if the configuration is missing, the email is written to the log instead
     public class EmailSender
     {
         private readonly IConfiguration _configuration;
@@ -18,7 +16,7 @@ namespace CapstoneProjectPUSH_API.Services
             _logger = logger;
         }
 
-        // Never throws: a failed email shouldn't break the request that sent it
+        // Wraps the sendasync method -- so a failed email doesn't cause a crash, logging the error instead
         public async Task<bool> TrySendAsync(string toEmail, string subject, string body)
         {
             try
@@ -33,14 +31,17 @@ namespace CapstoneProjectPUSH_API.Services
             }
         }
 
+        // Sends the actual email
         private async Task SendAsync(string toEmail, string subject, string body)
         {
+            // Email settings
             string senderName = GetSetting("Email:SenderName", "PUSH");
             string senderEmail = GetSetting("Email:SenderEmail", string.Empty);
             string appPassword = GetSetting("Email:AppPassword", string.Empty);
             string host = GetSetting("Email:Host", "smtp.gmail.com");
             string portText = GetSetting("Email:Port", "587");
 
+            // Print to console if email hasn't been configured
             if (senderEmail.Length == 0 || appPassword.Length == 0)
             {
                 _logger.LogWarning("[DEMO EMAIL] to={ToEmail} | {Subject} | {Body}", toEmail, subject, body);
@@ -54,6 +55,7 @@ namespace CapstoneProjectPUSH_API.Services
                 port = 587;
             }
 
+            // Builds the email
             MimeMessage message = new MimeMessage();
             message.From.Add(new MailboxAddress(senderName, senderEmail));
             message.To.Add(MailboxAddress.Parse(toEmail));
@@ -69,6 +71,8 @@ namespace CapstoneProjectPUSH_API.Services
             }
         }
 
+        // Helper
+        // Gets email setting by key
         private string GetSetting(string key, string defaultValue)
         {
             string? value = _configuration[key];

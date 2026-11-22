@@ -79,7 +79,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             _db.Exercises.Add(exercise);
             await _db.SaveChangesAsync();
 
-            return Ok(new MessageResponse(true, exercise.Title + " was added."));
+            return Ok(new CreatedResponse { Success = true, Message = exercise.Title + " was added.", Id = exercise.Id });
         }
 
         // PUT api/exercises/id

@@ -13,11 +13,13 @@ namespace CapstoneProjectPUSH_API.Controllers
     {
         private readonly PushDbContext _db;
         private readonly TokenService _tokenService;
+        private readonly EmailSender _emailSender;
 
-        public AuthController(PushDbContext db, TokenService tokenService)
+        public AuthController(PushDbContext db, TokenService tokenService, EmailSender emailSender)
         {
             _db = db;
             _tokenService = tokenService;
+            _emailSender = emailSender;
         }
 
         // POST api/auth/register
@@ -86,6 +88,12 @@ namespace CapstoneProjectPUSH_API.Controllers
             {
                 return Fail("An account with that email or display name already exists.");
             }
+
+            // Welcome email -- a failed email doesn't stop the registration
+            await _emailSender.TrySendAsync(
+                user.Email,
+                "Welcome to PUSH",
+                "Hi " + user.DisplayName + ", welcome to PUSH! Start by exploring the workouts on the home page.");
 
             return Ok(new AuthResponse
             {

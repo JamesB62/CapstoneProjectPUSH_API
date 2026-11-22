@@ -133,7 +133,7 @@ namespace CapstoneProjectPUSH_API.Controllers
             _db.Trainers.Add(trainer);
             await _db.SaveChangesAsync();
 
-            return Ok(new MessageResponse(true, GetFullName(trainer) + " was added."));
+            return Ok(new CreatedResponse { Success = true, Message = GetFullName(trainer) + " was added.", Id = trainer.Id });
         }
 
         // PUT api/trainers/id

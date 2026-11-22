@@ -16,4 +16,12 @@ namespace CapstoneProjectPUSH_API.Dtos
             Message = message;
         }
     }
+
+    // Reply after adding something that the app needs the new Id of
+    public class CreatedResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int Id { get; set; }
+    }
 }

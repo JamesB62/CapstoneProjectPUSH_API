@@ -19,7 +19,7 @@ namespace CapstoneProjectPUSH_API.Dtos
         public string Password { get; set; } = string.Empty;
     }
 
-    // What the API sends back (same idea as the app's AuthResult, plus the token)
+    // What the api sends back
     public class AuthResponse
     {
         public bool Success { get; set; }

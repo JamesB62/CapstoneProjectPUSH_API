@@ -2,7 +2,7 @@ using CapstoneProjectPUSH_API.Models;
 
 namespace CapstoneProjectPUSH_API.Dtos
 {
-    // What the app sends from the Update Details form (the photo is handled separately)
+    // What the app sends from the Update Details form -- the photo is handled separately
     public class UpdateDetailsRequest
     {
         public string DisplayName { get; set; } = string.Empty;

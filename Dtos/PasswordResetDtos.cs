@@ -1,12 +1,12 @@
 namespace CapstoneProjectPUSH_API.Dtos
 {
-    // Step 1: ask for a reset code
+    // Reset password code request
     public class ResetCodeRequest
     {
         public string Email { get; set; } = string.Empty;
     }
 
-    // Step 2: send the code and the new password
+    // Send the code and the new password
     public class ResetPasswordRequest
     {
         public string Email { get; set; } = string.Empty;

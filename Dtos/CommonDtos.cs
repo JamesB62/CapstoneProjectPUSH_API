@@ -1,6 +1,6 @@
 namespace CapstoneProjectPUSH_API.Dtos
 {
-    // Simple success/message reply, like the app's (bool Success, string Message) results
+    // Simple success/message reply
     public class MessageResponse
     {
         public bool Success { get; set; }

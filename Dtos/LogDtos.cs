@@ -1,6 +1,6 @@
 namespace CapstoneProjectPUSH_API.Dtos
 {
-    // What the app sends when a workout run is finished
+    // What the app sends when a workout is finished
     public class WorkoutLogRequest
     {
         public int WorkoutId { get; set; }

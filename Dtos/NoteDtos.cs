@@ -1,6 +1,6 @@
 namespace CapstoneProjectPUSH_API.Dtos
 {
-    // What the app sends to add a note (WorkoutId is ignored when editing)
+    // What the app sends to add a note
     public class NoteRequest
     {
         public string Title { get; set; } = string.Empty;

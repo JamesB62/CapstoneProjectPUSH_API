@@ -1,6 +1,6 @@
 namespace CapstoneProjectPUSH_API.Dtos
 {
-    // What the app sends to add or edit a trainer (the photo is handled separately)
+    // What the app sends to add or edit a trainer -- the photo is handled separately
     public class TrainerRequest
     {
         public string FirstName { get; set; } = string.Empty;

@@ -67,6 +67,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (user == null || !user.IsActive)
                 {
                     context.Fail("This account has been deactivated or no longer exists.");
+                    return;
+                }
+
+                // Reject tokens whose role no longer matches the account
+                string? tokenRole = context.Principal.FindFirstValue(ClaimTypes.Role);
+
+                if (tokenRole != TokenService.GetRole(user))
+                {
+                    context.Fail("Your role has changed. Please log in again.");
                 }
             }
         };

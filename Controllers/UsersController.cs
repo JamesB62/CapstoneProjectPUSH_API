@@ -250,8 +250,46 @@ namespace CapstoneProjectPUSH_API.Controllers
             }
         }
 
-        // Helpers
+        // PUT api/users/id/role
+        // Promote to admin or demote to member
+        [HttpPut("{id}/role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SetUserRole(int id, UserRoleRequest request)
+        {
+            // Gets current user id, can't match requested user id
+            if (id == GetCurrentUserId())
+            {
+                return Fail("You can't change your own role.");
+            }
 
+            // Database checks
+            User? user = await _db.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound(new UserResponse { Success = false, Message = "Account could not be found." });
+            }
+
+            if (user.IsGuest)
+            {
+                return Fail("The guest account's role can't be changed.");
+            }
+
+            // Update role
+            user.IsAdmin = request.IsAdmin;
+            await _db.SaveChangesAsync();
+
+            if (request.IsAdmin)
+            {
+                return Ok(new UserResponse { Success = true, Message = "Account promoted to admin.", User = user });
+            }
+            else
+            {
+                return Ok(new UserResponse { Success = true, Message = "Account demoted to member.", User = user });
+            }
+        }
+
+        // Helpers
         private IActionResult Fail(string message)
         {
             return BadRequest(new UserResponse { Success = false, Message = message });

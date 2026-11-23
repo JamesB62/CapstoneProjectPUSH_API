@@ -20,24 +20,28 @@ namespace CapstoneProjectPUSH_API.Services
             _configuration = configuration;
         }
 
-        // Creates a user token
-        public string CreateToken(User user)
+        // Finds a user's role
+        public static string GetRole(User user)
         {
-            string role;
-
-            // Finds the current user's role
             if (user.IsAdmin)
             {
-                role = AdminRole;
+                return AdminRole;
             }
             else if (user.IsGuest)
             {
-                role = GuestRole;
+                return GuestRole;
             }
             else
             {
-                role = MemberRole;
+                return MemberRole;
             }
+        }
+
+        // Creates a user token
+        public string CreateToken(User user)
+        {
+            // Finds the current user's role
+            string role = GetRole(user);
 
             // Important info about the current user stored in the token
             List<Claim> claims = new List<Claim>

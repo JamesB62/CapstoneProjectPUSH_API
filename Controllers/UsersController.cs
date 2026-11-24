@@ -87,6 +87,11 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail("Account could not be found.");
             }
 
+            if (IsSeededAdmin(user) && email != user.Email)
+            {
+                return Fail("The main admin account's email can't be changed.");
+            }
+
             bool emailTaken = await _db.Users.AnyAsync(u => u.Email == email && u.Id != userId);
 
             if (emailTaken)
@@ -236,6 +241,11 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return NotFound(new UserResponse { Success = false, Message = "Account could not be found." });
             }
 
+            if (IsSeededAdmin(user) && !request.IsActive)
+            {
+                return Fail("The main admin account can't be deactivated.");
+            }
+
             // Update status
             user.IsActive = request.IsActive;
             await _db.SaveChangesAsync();
@@ -275,6 +285,11 @@ namespace CapstoneProjectPUSH_API.Controllers
                 return Fail("The guest account's role can't be changed.");
             }
 
+            if (IsSeededAdmin(user))
+            {
+                return Fail("The main admin account's role can't be changed.");
+            }
+
             // Update role
             user.IsAdmin = request.IsAdmin;
             await _db.SaveChangesAsync();
@@ -293,6 +308,12 @@ namespace CapstoneProjectPUSH_API.Controllers
         private IActionResult Fail(string message)
         {
             return BadRequest(new UserResponse { Success = false, Message = message });
+        }
+
+        // The seeded admin is locked so there's always a way into the admin content
+        private static bool IsSeededAdmin(User user)
+        {
+            return string.Equals(user.Email, DbSeeder.SeedAdminEmail, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

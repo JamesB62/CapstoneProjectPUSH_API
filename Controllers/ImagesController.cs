@@ -210,6 +210,69 @@ namespace CapstoneProjectPUSH_API.Controllers
             return Ok(new ImageResponse { Success = true, Message = "Exercise photo removed." });
         }
 
+        // Article photos -- admin only
+
+        // POST api/images/articles/id
+        [HttpPost("articles/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UploadArticleImage(int id, IFormFile file)
+        {
+            // Validate image file
+            string? error = ImageStorage.Validate(file);
+
+            if (error != null)
+            {
+                return Fail(error);
+            }
+
+            // Find article by id
+            Article? article = await _db.Articles.FindAsync(id);
+
+            if (article == null)
+            {
+                return NotFound(new ImageResponse { Success = false, Message = "Article could not be found." });
+            }
+
+            // Temp stores images while form is in progress
+            string oldImageUrl = article.ImageUrl;
+            string newImageUrl = await _imageStorage.SaveAsync(file);
+
+            // Updates article image
+            article.ImageUrl = newImageUrl;
+            await _db.SaveChangesAsync();
+
+            // Deletes old image -- unused now
+            _imageStorage.Delete(oldImageUrl);
+
+            return Ok(new ImageResponse { Success = true, Message = "Article photo updated.", ImageUrl = newImageUrl });
+        }
+
+        // DELETE api/images/articles/id
+        [HttpDelete("articles/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RemoveArticleImage(int id)
+        {
+            // Find article by id
+            Article? article = await _db.Articles.FindAsync(id);
+
+            if (article == null)
+            {
+                return NotFound(new ImageResponse { Success = false, Message = "Article could not be found." });
+            }
+
+            // Temp stores image
+            string oldImageUrl = article.ImageUrl;
+
+            // Removes article image
+            article.ImageUrl = string.Empty;
+            await _db.SaveChangesAsync();
+
+            // Deletes old image -- unused now
+            _imageStorage.Delete(oldImageUrl);
+
+            return Ok(new ImageResponse { Success = true, Message = "Article photo removed." });
+        }
+
         // Helpers
 
         private IActionResult Fail(string message)

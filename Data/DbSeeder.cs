@@ -7,7 +7,7 @@ namespace CapstoneProjectPUSH_API.Data
     public static class DbSeeder
     {
         public const string SeedAdminDisplayName = "Administrator";
-        public const string SeedAdminEmail = "admin@push.local";
+        public const string SeedAdminEmail = "admin@push.app";
 
         public static async Task SeedAsync(PushDbContext db, IConfiguration configuration)
         {
@@ -87,7 +87,7 @@ namespace CapstoneProjectPUSH_API.Data
             }
 
             bool nameTaken = await db.Users.AnyAsync(u => u.DisplayName == "Guest");
-            bool emailTaken = await db.Users.AnyAsync(u => u.Email == "guest@push.local");
+            bool emailTaken = await db.Users.AnyAsync(u => u.Email == "guest@push.app");
 
             if (nameTaken || emailTaken)
             {
@@ -97,7 +97,7 @@ namespace CapstoneProjectPUSH_API.Data
             // Add guest
             db.Users.Add(new User
             {
-                Email = "guest@push.local",
+                Email = "guest@push.app",
                 DisplayName = "Guest",
                 PasswordHash = string.Empty,
                 IsGuest = true
@@ -160,7 +160,7 @@ namespace CapstoneProjectPUSH_API.Data
                 "Cardio",
                 "HIIT",
                 "Yoga",
-                "Flexibility & Mobility",
+                "Flexibility",
                 "Core",
                 "Bodyweight",
                 "Pilates",
@@ -338,21 +338,21 @@ namespace CapstoneProjectPUSH_API.Data
                 // Yoga
                 new Exercise
                 {
-                    Title = "Downward-Facing Dog",
-                    Description = "Start on hands and knees, tuck your toes, and lift your hips up and back. Press your hands into the mat, keep your spine long, and let your head hang between your arms.",
-                    Difficulty = 3,
+                    Title = "Warrior II",
+                    Description = "Step your feet wide apart, turn your front foot out and bend that knee over your ankle. Keep your back leg straight, raise your arms level with your shoulders, and look past your front hand. Hold, then switch sides.",
+                    Difficulty = 2,
                     IsTimed = true,
                     CategoryId = GetId(categoryIds, "Yoga")
                 },
 
-                // Flexibility & Mobility
+                // Flexibility
                 new Exercise
                 {
                     Title = "Seated Hamstring Stretch",
                     Description = "Sit with one leg extended and the other bent. Hinge forward from the hips toward your extended foot until you feel a gentle stretch in the back of your thigh. Keep your back straight and breathe.",
                     Difficulty = 2,
                     IsTimed = true,
-                    CategoryId = GetId(categoryIds, "Flexibility & Mobility")
+                    CategoryId = GetId(categoryIds, "Flexibility")
                 },
 
                 // Core
@@ -481,7 +481,7 @@ namespace CapstoneProjectPUSH_API.Data
                 // Guest workouts -- must stay private
                 workouts.Add(new Workout { Title = "Beginner Full Body", UserId = guest.Id, CategoryId = GetId(categoryIds, "Bodyweight"), IsPrivate = true });
                 workouts.Add(new Workout { Title = "Quick Cardio", UserId = guest.Id, CategoryId = GetId(categoryIds, "Cardio"), IsPrivate = true });
-                workouts.Add(new Workout { Title = "Gentle Stretch", UserId = guest.Id, CategoryId = GetId(categoryIds, "Flexibility & Mobility"), IsPrivate = true });
+                workouts.Add(new Workout { Title = "Gentle Stretch", UserId = guest.Id, CategoryId = GetId(categoryIds, "Flexibility"), IsPrivate = true });
             }
 
             if (workouts.Count > 0)
@@ -572,7 +572,7 @@ namespace CapstoneProjectPUSH_API.Data
             AddTimed("Morning HIIT", "Jump Rope", 2, 5);
             Add("Morning HIIT", "Bodyweight Squat", 3, 3, 20);
 
-            AddTimed("Yoga Flow", "Downward-Facing Dog", 1, 5);
+            AddTimed("Yoga Flow", "Warrior II", 1, 5);
             Add("Yoga Flow", "Pilates Hundred", 2, 1, 100);
             AddTimed("Yoga Flow", "Seated Hamstring Stretch", 3, 5);
 
@@ -586,7 +586,7 @@ namespace CapstoneProjectPUSH_API.Data
             Add("Quick Cardio", "Burpee", 3, 3, 8);
 
             AddTimed("Gentle Stretch", "Seated Hamstring Stretch", 1, 5);
-            AddTimed("Gentle Stretch", "Downward-Facing Dog", 2, 5);
+            AddTimed("Gentle Stretch", "Warrior II", 2, 5);
             AddTimed("Gentle Stretch", "Foam Rolling", 3, 10);
 
             if (workoutExercises.Count > 0)
@@ -637,7 +637,7 @@ namespace CapstoneProjectPUSH_API.Data
                 6, 6);
 
             Add("Yoga Flow", "Yoga Reflection",
-                "This session really helped me relax. My shoulders and lower back were tight when I started and felt looser by the end. Holding downward dog a little longer showed me where I'm stiffest. I'd like to make this a regular part of my week after harder workouts.",
+                "This session really helped me relax. My shoulders and lower back were tight when I started and felt looser by the end. Holding warrior II a little longer showed me where I'm stiffest. I'd like to make this a regular part of my week after harder workouts.",
                 3, 18);
 
             // Guest notes

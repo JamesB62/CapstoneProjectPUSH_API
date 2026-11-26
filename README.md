@@ -92,7 +92,7 @@ All routes start with `/api`.
    Update-Database
    ```
 
-4. Run the API with the **http** launch profile. Empty tables are filled with seed data on startup (categories, gyms, trainers, exercises, articles, an admin account `admin@push.local`, and a guest account with sample workouts).
+4. Run the API with the **http** launch profile. Empty tables are filled with seed data on startup (categories, gyms, trainers, exercises, articles, an admin account `admin@push.app`, and a guest account with sample workouts).
 
 ### Connecting the app to a local API
 
